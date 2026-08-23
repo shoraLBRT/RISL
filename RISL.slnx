@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="RISL.Application/RISL.Application.csproj" />
+  <Project Path="RISL.Blazor/RISL.Blazor.csproj" />
+  <Project Path="RISL.Domain/RISL.Domain.csproj" />
+</Solution>
