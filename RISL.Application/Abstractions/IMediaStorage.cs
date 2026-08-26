@@ -16,6 +16,15 @@ public interface IMediaStorage
 
     bool Exists(MediaArea area, string fileName);
 
+    /// <summary>
+    /// Имена файлов области, подходящие под шаблон.
+    /// </summary>
+    /// <remarks>
+    /// Нужен уборке недоделанных файлов при старте. Шаблон задаётся кодом,
+    /// пользовательские данные сюда не попадают.
+    /// </remarks>
+    IReadOnlyList<string> List(MediaArea area, string searchPattern);
+
     void Delete(MediaArea area, string fileName);
 
     /// <summary>
