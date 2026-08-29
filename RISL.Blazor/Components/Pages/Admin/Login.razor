@@ -1,0 +1,57 @@
+@page "/admin/login"
+@layout AdminLayout
+@using Microsoft.Extensions.Options
+@using RISL.Blazor.Security
+@inject IOptions<AdminAccountOptions> Options
+
+<PageTitle>Вход в панель</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex" />
+</HeadContent>
+
+<h1>Вход в панель</h1>
+
+@if (!Options.Value.IsConfigured)
+{
+    <div class="alert alert--error">
+        Учётная запись администратора не настроена. Задайте <code>Admin:Login</code>,
+        <code>Admin:PasswordSalt</code> и <code>Admin:PasswordHash</code> в конфигурации
+        приложения или переменных окружения.
+    </div>
+}
+
+@if (Error is not null)
+{
+    <div class="alert alert--error">@ErrorText</div>
+}
+
+<form class="form" method="post" action="/admin/api/login">
+    <AntiforgeryToken />
+
+    <div class="field">
+        <label class="field__label" for="login">Логин</label>
+        <input id="login" type="text" name="login" required autocomplete="username" />
+    </div>
+
+    <div class="field">
+        <label class="field__label" for="password">Пароль</label>
+        <input id="password" type="password" name="password" required autocomplete="current-password" />
+    </div>
+
+    <div>
+        <button class="button button--primary" type="submit">Войти</button>
+    </div>
+</form>
+
+@code {
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    // Формулировка одна на оба случая: по тексту ошибки не должно быть видно,
+    // существует ли такой логин.
+    private string ErrorText => Error switch
+    {
+        "expired" => "Форма устарела, пока была открыта. Попробуйте войти ещё раз.",
+        _ => "Неверный логин или пароль.",
+    };
+}

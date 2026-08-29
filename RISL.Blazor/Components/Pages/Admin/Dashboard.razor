@@ -1,0 +1,67 @@
+@page "/admin"
+@layout AdminLayout
+@using RISL.Blazor.Security
+@attribute [Authorize(Policy = AdminAuthentication.Policy)]
+@inject IWordAdminService WordService
+
+<PageTitle>Сводка — панель словаря</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex" />
+</HeadContent>
+
+<h1>Сводка</h1>
+
+<div class="stat-grid">
+    <div class="stat">
+        <div class="stat__value">@_dashboard.TotalWords</div>
+        <div class="stat__label">Всего слов</div>
+    </div>
+    <div class="stat">
+        <div class="stat__value">@_dashboard.VisibleWords</div>
+        <div class="stat__label">Видно гостям</div>
+    </div>
+    <div class="stat">
+        <div class="stat__value">@_dashboard.WithoutVideo</div>
+        <div class="stat__label">Без видео</div>
+    </div>
+    <div class="stat">
+        <div class="stat__value">@_dashboard.Processing</div>
+        <div class="stat__label">Видео в обработке</div>
+    </div>
+    <div class="stat @(_dashboard.Failed > 0 ? "stat--alert" : null)">
+        <div class="stat__value">@_dashboard.Failed</div>
+        <div class="stat__label">Ошибки обработки</div>
+    </div>
+    <div class="stat @(_dashboard.PendingFeedback > 0 ? "stat--alert" : null)">
+        <div class="stat__value">@_dashboard.PendingFeedback</div>
+        <div class="stat__label">Непрочитанных сообщений</div>
+    </div>
+</div>
+
+@if (_dashboard.Failed > 0)
+{
+    <div class="alert alert--error">
+        У @_dashboard.Failed слов не удалось обработать видео.
+        <a href="/admin/words?filter=@AdminWordFilter.Failed">Посмотреть список</a> — там же есть повтор попытки.
+    </div>
+}
+
+@if (_dashboard.Processing > 0)
+{
+    <div class="alert alert--info">
+        Обрабатывается видео: @_dashboard.Processing. Слова появятся у гостей, как только
+        перекодирование завершится.
+    </div>
+}
+
+<div class="toolbar">
+    <a class="button button--primary" href="/admin/words/new">Добавить слово</a>
+    <a class="button" href="/admin/import">Загрузить пачкой</a>
+</div>
+
+@code {
+    private AdminDashboard _dashboard = new(0, 0, 0, 0, 0, 0);
+
+    protected override async Task OnInitializedAsync() =>
+        _dashboard = await WordService.GetDashboardAsync();
+}

@@ -1,0 +1,101 @@
+@page "/admin/feedback"
+@layout AdminLayout
+@using RISL.Blazor.Security
+@attribute [Authorize(Policy = AdminAuthentication.Policy)]
+@inject IFeedbackService FeedbackService
+
+<PageTitle>Обратная связь — панель словаря</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex" />
+</HeadContent>
+
+<h1>Обратная связь</h1>
+
+@if (Deleted)
+{
+    <div class="alert alert--success">Сообщение удалено.</div>
+}
+
+@if (Error is not null)
+{
+    <div class="alert alert--error">@(Error == "expired" ? "Форма устарела. Повторите действие." : Error)</div>
+}
+
+<div class="chips" role="group" aria-label="Фильтр сообщений">
+    <a class="chip @(OnlyPending ? "chip--active" : null)" href="/admin/feedback">Непрочитанные</a>
+    <a class="chip @(OnlyPending ? null : "chip--active")" href="/admin/feedback?all=true">Все</a>
+</div>
+
+@if (_messages.Count == 0)
+{
+    <div class="empty-state" style="margin-top:1rem">
+        @(OnlyPending ? "Непрочитанных сообщений нет." : "Сообщений пока не было.")
+    </div>
+}
+else
+{
+    <div class="table-wrapper" style="margin-top:1rem">
+        <table>
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>От кого</th>
+                    <th>Сообщение</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var message in _messages)
+                {
+                    <tr>
+                        <td class="nowrap muted">@message.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>
+                            <div>@(string.IsNullOrWhiteSpace(message.Name) ? "Аноним" : message.Name)</div>
+                            @if (!string.IsNullOrWhiteSpace(message.Contact))
+                            {
+                                <div class="muted">@message.Contact</div>
+                            }
+                        </td>
+                        <td style="white-space:pre-line">@message.Message</td>
+                        <td class="nowrap">
+                            <form class="inline-form" method="post"
+                                  action="/admin/api/feedback/@message.Id/handled?handled=@((!message.IsHandled).ToString().ToLowerInvariant())">
+                                <AntiforgeryToken />
+                                <button class="button button--small" type="submit">
+                                    @(message.IsHandled ? "Вернуть в работу" : "Обработано")
+                                </button>
+                            </form>
+                            <form class="inline-form" method="post" action="/admin/api/feedback/@message.Id/delete"
+                                  onsubmit="return confirm('Удалить сообщение?')">
+                                <AntiforgeryToken />
+                                <button class="button button--small button--danger" type="submit">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<AdminFeedback> _messages = [];
+
+    [SupplyParameterFromQuery(Name = "all")]
+    public string? ShowAllValue { get; set; }
+
+    [SupplyParameterFromQuery(Name = "deleted")]
+    public string? DeletedValue { get; set; }
+
+    private bool ShowAll => QueryValues.IsSet(ShowAllValue);
+
+    private bool Deleted => QueryValues.IsSet(DeletedValue);
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    private bool OnlyPending => !ShowAll;
+
+    protected override async Task OnParametersSetAsync() =>
+        _messages = await FeedbackService.ListAsync(OnlyPending);
+}
