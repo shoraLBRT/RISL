@@ -419,6 +419,15 @@ img, video {
     text-transform: uppercase;
 }
 
+/* Короткое описание под заголовком страницы. Отдельного призыва к действию
+   рядом нет намеренно: подсказка в поле поиска говорит то же самое, и вторая
+   формулировка в двух сантиметрах от первой только шумит. */
+.page-lead {
+    color: var(--text-muted);
+    max-width: 58ch;
+    margin: 0 0 1.25rem;
+}
+
 .result-count {
     color: var(--text-muted);
     font-size: 0.92rem;
