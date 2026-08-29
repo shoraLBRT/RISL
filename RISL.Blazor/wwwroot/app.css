@@ -3,46 +3,73 @@
    страница состоит из списка, карточек и видео, готовая библиотека здесь
    весила бы больше, чем весь остальной сайт. */
 
+/* Палитра взята с сайта фонда «Закят» (zakatfund.ru): фирменный зелёный
+   #509269, тёмный текст #111a1c, серые границы #e3e9eb, светлый фон #f5f8f9.
+   Сам фирменный зелёный на белом даёт контраст 3.7:1 — этого хватает крупному
+   тексту и границам, но не основному. Поэтому для ссылок, кнопок и всего, что
+   читают, взяты затемнённые оттенки того же тона: 5.1:1 и 7.1:1. Фон оставлен
+   светлым, а не зелёным: словарь читают подолгу, и вывернутый контраст на
+   странице с определениями и видео утомляет глаза быстрее, чем помогает
+   бренду. Зелёный держит фирменный стиль там, где его видно, но не мешает:
+   подвал, кнопки, активные фильтры, блок поиска. */
+
 :root {
-    --bg: #f6f7f9;
+    /* Фирменная шкала */
+    --brand: #509269;
+    --brand-deep: #3d7a56;
+    --brand-deeper: #2f6244;
+    --brand-soft: #eef6f1;
+    --brand-line: #d3e5da;
+    /* Песочный из логотипа — второй фирменный цвет, для акцентов на зелёном. */
+    --sand: #d0c3a3;
+
+    --bg: #f5f8f9;
     --surface: #ffffff;
-    --surface-muted: #eef1f5;
-    --text: #1a1d21;
-    --text-muted: #5b636d;
-    --border: #d8dee6;
-    --accent: #1f6feb;
+    --surface-muted: #eef1f2;
+    --text: #111a1c;
+    --text-muted: #5c686b;
+    --border: #e3e9eb;
+    --accent: var(--brand-deep);
     --accent-contrast: #ffffff;
-    --accent-soft: #e7f0ff;
-    --danger: #c62828;
-    --danger-soft: #fdecec;
-    --success: #1b7a3d;
-    --success-soft: #e6f5eb;
-    --warning: #9a6400;
-    --warning-soft: #fdf3e0;
+    --accent-soft: var(--brand-soft);
+    --danger: #b3261e;
+    --danger-soft: #fdecea;
+    --success: #2f6244;
+    --success-soft: #eef6f1;
+    --warning: #8a5e18;
+    --warning-soft: #fbf3e4;
 
     --radius: 12px;
     --radius-sm: 8px;
     --gap: 1rem;
     --content-width: 1180px;
 
-    --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 4px 12px rgb(16 24 40 / 6%);
+    --shadow: 0 1px 2px rgb(17 26 28 / 5%), 0 4px 12px rgb(17 26 28 / 6%);
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: #14171a;
-        --surface: #1c2025;
-        --surface-muted: #23282f;
-        --text: #e8eaed;
-        --text-muted: #9aa4b0;
-        --border: #333a43;
-        --accent: #5a9bff;
-        --accent-contrast: #0d1117;
-        --accent-soft: #1b2941;
-        --danger: #ff8080;
+        /* В тёмной теме фирменный зелёный осветляется: #509269 на тёмном фоне
+           даёт около 2.5:1 и для текста непригоден. */
+        --brand: #7cc294;
+        --brand-deep: #8fd0a5;
+        --brand-deeper: #6bb083;
+        --brand-soft: #1a2b22;
+        --brand-line: #2f4438;
+
+        --bg: #0e1513;
+        --surface: #16201d;
+        --surface-muted: #1e2a26;
+        --text: #e6ecea;
+        --text-muted: #9aa8a4;
+        --border: #2c3a36;
+        --accent: #7cc294;
+        --accent-contrast: #0e1513;
+        --accent-soft: #1a2b22;
+        --danger: #ff9a90;
         --danger-soft: #3a2020;
-        --success: #6cd08c;
-        --success-soft: #17301f;
+        --success: #7cc294;
+        --success-soft: #1a2b22;
         --warning: #e0b256;
         --warning-soft: #322813;
 
@@ -155,13 +182,14 @@ img, video {
     }
 }
 
+/* Совмещённый знак: слева логотип фонда, справа название приложения.
+   Приложение не выдаёт себя за сайт фонда — оно подписано как его проект,
+   поэтому логотип отделён чертой, а не слит с названием. */
 .brand {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.7rem;
     color: var(--text);
-    font-weight: 650;
-    font-size: 1.05rem;
 }
 
 .brand:hover {
@@ -170,6 +198,51 @@ img, video {
 
 .brand__mark {
     font-size: 1.4rem;
+    line-height: 1;
+}
+
+.brand__logo {
+    display: block;
+    width: auto;
+    height: 34px;
+    flex: 0 0 auto;
+}
+
+.brand__divider {
+    width: 1px;
+    align-self: stretch;
+    min-height: 2rem;
+    background: var(--border);
+    flex: 0 0 auto;
+}
+
+.brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+
+.brand__name {
+    font-weight: 700;
+    font-size: 1.02rem;
+    color: var(--brand-deeper);
+    letter-spacing: 0.01em;
+}
+
+.brand__tagline {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* На узком экране от подписи остаётся только аббревиатура: шапка и так тесная. */
+@media (max-width: 520px) {
+    .brand__tagline {
+        display: none;
+    }
+
+    .brand__logo {
+        height: 28px;
+    }
 }
 
 .site-nav {
@@ -209,19 +282,33 @@ img, video {
     padding-bottom: 2.5rem;
 }
 
+/* Подвал — единственная крупная зелёная плоскость на странице. Здесь она
+   уместна: читать тут нечего, а фирменный цвет наконец виден целиком.
+   #2f6244 с белым текстом даёт 7.1:1. */
 .site-footer {
-    border-top: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-muted);
+    background: var(--brand-deeper);
+    color: #dbe8e0;
     font-size: 0.9rem;
 }
 
 .site-footer__inner {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    padding-top: 1rem;
-    padding-bottom: 1rem;
+    gap: 1.1rem;
+    padding-top: 1.75rem;
+    padding-bottom: 1.75rem;
+}
+
+.site-footer p {
+    margin: 0;
+}
+
+.site-footer a {
+    color: #ffffff;
+}
+
+.site-footer :focus-visible {
+    outline-color: var(--sand);
 }
 
 .site-footer__links {
@@ -230,11 +317,52 @@ img, video {
     gap: 0.85rem;
 }
 
+.site-footer__owner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Светлая версия логотипа — та, что фонд использует на тёмном фоне. */
+.site-footer__logo {
+    display: block;
+    width: auto;
+    height: 40px;
+    flex: 0 0 auto;
+}
+
+.site-footer__owner-text {
+    font-size: 0.85rem;
+    max-width: 22rem;
+}
+
+.site-footer__legal {
+    /* 4.67:1 на #2f6244 — тише основного текста подвала, но всё ещё AA. */
+    color: #c3d6ca;
+    font-size: 0.82rem;
+}
+
 @media (min-width: 768px) {
     .site-footer__inner {
         flex-direction: row;
-        align-items: center;
+        align-items: flex-start;
         justify-content: space-between;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .site-footer {
+        background: #12211a;
+        border-top: 1px solid var(--border);
+        color: var(--text-muted);
+    }
+
+    .site-footer a {
+        color: var(--text);
+    }
+
+    .site-footer__legal {
+        color: var(--text-muted);
     }
 }
 
@@ -259,6 +387,10 @@ img, video {
 
 .search__input::placeholder {
     color: var(--text-muted);
+}
+
+.search__input:focus {
+    border-color: var(--brand);
 }
 
 /* Кнопка нужна, когда JavaScript выключен: тогда форма отправляется вручную.
@@ -558,6 +690,11 @@ img, video {
     font-weight: 600;
 }
 
+.button--primary:hover {
+    background: var(--brand-deeper);
+    border-color: var(--brand-deeper);
+}
+
 .button--danger {
     color: var(--danger);
     border-color: var(--danger);
@@ -808,5 +945,84 @@ tbody tr:last-child td {
     * {
         transition: none !important;
         animation: none !important;
+    }
+}
+
+/* ---------- Заглавный блок главной ---------- */
+
+.hero {
+    background: linear-gradient(155deg, var(--brand-soft), var(--surface) 72%);
+    border: 1px solid var(--brand-line);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.1rem 1.35rem;
+    margin-bottom: 1.4rem;
+}
+
+@media (min-width: 768px) {
+    .hero {
+        padding: 1.75rem 1.6rem 1.85rem;
+    }
+}
+
+.hero h1 {
+    margin-bottom: 0.35rem;
+}
+
+.hero__lead {
+    color: var(--text-muted);
+    max-width: 56ch;
+    margin: 0 0 1.15rem;
+}
+
+.hero .search {
+    margin-bottom: 0;
+}
+
+/* Подпись о принадлежности к экосистеме фонда — на странице «О проекте». */
+.owner-note {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--brand);
+    border-radius: var(--radius-sm);
+    padding: 0.9rem 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.owner-note__logo {
+    display: block;
+    width: auto;
+    height: 42px;
+    flex: 0 0 auto;
+}
+
+.owner-note p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* ---------- Две версии логотипа фонда ---------- */
+
+/* Цветная версия — с тёмной надписью «ЗАКЯТ» — читается только на светлом фоне,
+   белая с песочным — только на тёмном. В тёмной теме поверхности тёмные, поэтому
+   версии меняются местами. Обе лежат в разметке, переключает их медиазапрос:
+   JavaScript ради этого не нужен. display:none убирает лишнюю картинку и из
+   дерева доступности, поэтому альтернативный текст читается ровно один раз.
+   Правила стоят в конце файла: у .brand__logo и .owner-note__logo та же
+   специфичность, и выше по файлу они бы их перебили. */
+.logo--on-dark {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .logo--on-light {
+        display: none;
+    }
+
+    .logo--on-dark {
+        display: block;
     }
 }

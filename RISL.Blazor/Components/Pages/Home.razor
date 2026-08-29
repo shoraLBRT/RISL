@@ -4,36 +4,43 @@
 @* Главная страница целиком обслуживается из памяти: снимок словаря обновляется
    при записи в админке, поэтому обращений к базе здесь нет вовсе. *@
 
-<PageTitle>Словарь жестового языка</PageTitle>
+<PageTitle>Русский исламский жестовый язык</PageTitle>
 <HeadContent>
-    <meta name="description" content="Словарь жестового языка: @Index.Count слов с определениями и видеозаписями жестов." />
+    <meta name="description" content="Словарь русского исламского жестового языка: @Index.Count слов с определениями и видеозаписями жестов." />
 </HeadContent>
 
-<h1>Словарь жестового языка</h1>
+<section class="hero">
+    <h1>Русский исламский жестовый язык</h1>
+    <p class="hero__lead">
+        Словарь исламских терминов на русском жестовом языке: у каждого понятия
+        есть определение и видеозапись жеста. Многие из этих слов раньше не имели
+        устоявшегося жеста — их приходилось объяснять по буквам.
+    </p>
 
-<form class="search" method="get" action="/" data-search-form>
-    <label class="visually-hidden" for="search-input">Поиск по словам и определениям</label>
-    <input id="search-input"
-           class="search__input"
-           type="text"
-           name="q"
-           value="@Query"
-           placeholder="Введите слово или его описание"
-           autocomplete="off"
-           data-search-input />
+    <form class="search" method="get" action="/" data-search-form>
+        <label class="visually-hidden" for="search-input">Поиск по словам и определениям</label>
+        <input id="search-input"
+               class="search__input"
+               type="text"
+               name="q"
+               value="@Query"
+               placeholder="Введите слово или его описание"
+               autocomplete="off"
+               data-search-input />
 
-    @* Фильтры переносим скрытыми полями, чтобы поиск не сбрасывал выбранную тему. *@
-    @if (!string.IsNullOrWhiteSpace(Category))
-    {
-        <input type="hidden" name="category" value="@Category" />
-    }
-    @if (!string.IsNullOrWhiteSpace(Letter))
-    {
-        <input type="hidden" name="letter" value="@Letter" />
-    }
+        @* Фильтры переносим скрытыми полями, чтобы поиск не сбрасывал выбранную тему. *@
+        @if (!string.IsNullOrWhiteSpace(Category))
+        {
+            <input type="hidden" name="category" value="@Category" />
+        }
+        @if (!string.IsNullOrWhiteSpace(Letter))
+        {
+            <input type="hidden" name="letter" value="@Letter" />
+        }
 
-    <button class="button button--primary search__submit" type="submit">Найти</button>
-</form>
+        <button class="button button--primary search__submit" type="submit">Найти</button>
+    </form>
+</section>
 
 <div class="filters">
     @if (Index.Categories.Count > 0)

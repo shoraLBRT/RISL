@@ -1,11 +1,26 @@
 @inherits LayoutComponentBase
 
+@* Приложение входит в экосистему фонда «Закят», но не является его сайтом.
+   Отсюда совмещённый знак в шапке: логотип фонда, вертикальная черта, название
+   приложения. Так видно и принадлежность, и то, что это отдельный продукт. *@
+
 <div class="layout">
     <header class="site-header">
         <div class="container site-header__inner">
             <a class="brand" href="/">
-                <span class="brand__mark" aria-hidden="true">✋</span>
-                <span class="brand__text">Словарь жестового языка</span>
+                <img class="brand__logo logo--on-light"
+                     src="@Assets["img/zakat-logo.png"]"
+                     alt="Благотворительный фонд «Закят»"
+                     width="210" height="111" />
+                <img class="brand__logo logo--on-dark"
+                     src="@Assets["img/zakat-logo-light.svg"]"
+                     alt="Благотворительный фонд «Закят»"
+                     width="210" height="111" />
+                <span class="brand__divider" aria-hidden="true"></span>
+                <span class="brand__text">
+                    <span class="brand__name">РИЖЯ</span>
+                    <span class="brand__tagline">Русский исламский жестовый язык</span>
+                </span>
             </a>
             <NavMenu />
         </div>
@@ -17,13 +32,27 @@
 
     <footer class="site-footer">
         <div class="container site-footer__inner">
-            <p>© @DateTime.Now.Year Словарь жестового языка</p>
-            <nav class="site-footer__links">
-                <a href="/about">О проекте</a>
-                <a href="/team">Создатели</a>
-                <a href="/feedback">Написать нам</a>
-                <a href="/admin">Панель</a>
-            </nav>
+            <div class="site-footer__owner">
+                @* Светлая версия знака — та, что фонд применяет на тёмном фоне. *@
+                <img class="site-footer__logo"
+                     src="@Assets["img/zakat-logo-light.svg"]"
+                     alt=""
+                     width="210" height="111" />
+                <p class="site-footer__owner-text">
+                    Проект благотворительного фонда «Закят» —
+                    <a href="https://zakatfund.ru" rel="noopener external">zakatfund.ru</a>
+                </p>
+            </div>
+
+            <div>
+                <nav class="site-footer__links">
+                    <a href="/about">О проекте</a>
+                    <a href="/team">Создатели</a>
+                    <a href="/feedback">Написать нам</a>
+                    <a href="/admin">Панель</a>
+                </nav>
+                <p class="site-footer__legal">© @DateTime.Now.Year Русский исламский жестовый язык</p>
+            </div>
         </div>
     </footer>
 </div>
