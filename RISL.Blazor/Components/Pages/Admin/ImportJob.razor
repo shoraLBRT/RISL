@@ -1,0 +1,177 @@
+@page "/admin/import/{Id:int}"
+@layout AdminLayout
+@using RISL.Blazor.Security
+@attribute [Authorize(Policy = AdminAuthentication.Policy)]
+@inject IImportService ImportService
+
+<PageTitle>Импорт №@Id — панель словаря</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex" />
+    @if (_job is { Status: ImportJobStatus.Applying })
+    {
+        @* Применение идёт в фоне: страница обновляется сама, без интерактивного режима. *@
+        <meta http-equiv="refresh" content="5" />
+    }
+</HeadContent>
+
+@if (_job is null)
+{
+    <h1>Задание не найдено</h1>
+    <p><a class="button" href="/admin/import">К импорту</a></p>
+}
+else
+{
+    <h1>Импорт из «@_job.FileName»</h1>
+
+    @if (Error is not null)
+    {
+        <div class="alert alert--error">@(Error == "expired" ? "Форма устарела. Повторите действие." : Error)</div>
+    }
+
+    @if (_job.Error is not null)
+    {
+        <div class="alert alert--error">@_job.Error</div>
+    }
+
+    <div class="stat-grid">
+        <div class="stat">
+            <div class="stat__value">@_job.TotalRows</div>
+            <div class="stat__label">Строк в файле</div>
+        </div>
+        <div class="stat">
+            <div class="stat__value">@_job.ToCreate</div>
+            <div class="stat__label">@(_job.Status == ImportJobStatus.Completed ? "Создано" : "Будет создано")</div>
+        </div>
+        <div class="stat">
+            <div class="stat__value">@_job.ToUpdate</div>
+            <div class="stat__label">@(_job.Status == ImportJobStatus.Completed ? "Обновлено" : "Будет обновлено")</div>
+        </div>
+        <div class="stat @(_job.Failed > 0 ? "stat--alert" : null)">
+            <div class="stat__value">@_job.Failed</div>
+            <div class="stat__label">Строк с ошибками</div>
+        </div>
+    </div>
+
+    @switch (_job.Status)
+    {
+        case ImportJobStatus.AwaitingConfirmation:
+            <div class="alert alert--info">
+                В словарь пока ничего не записано. Проверьте отчёт и подтвердите импорт.
+            </div>
+
+            <div class="toolbar">
+                @if (_job.CanApply)
+                {
+                    <form class="inline-form" method="post" action="/admin/api/import/@Id/apply">
+                        <AntiforgeryToken />
+                        <button class="button button--primary" type="submit">Применить импорт</button>
+                    </form>
+                }
+                <form class="inline-form" method="post" action="/admin/api/import/@Id/cancel">
+                    <AntiforgeryToken />
+                    <button class="button button--danger" type="submit">Отменить</button>
+                </form>
+            </div>
+            break;
+
+        case ImportJobStatus.Applying:
+            <div class="alert alert--info">Импорт применяется, страница обновится сама.</div>
+            break;
+
+        case ImportJobStatus.Completed:
+            <div class="alert alert--success">
+                Импорт применён. Видеозаписи обрабатываются в фоне — следите за состоянием
+                в <a href="/admin/words">списке слов</a>.
+            </div>
+            break;
+
+        case ImportJobStatus.Cancelled:
+            <div class="alert alert--info">Импорт отменён, распакованные файлы удалены.</div>
+            break;
+
+        default:
+            <div class="alert alert--error">Импорт сорвался, изменения откачены.</div>
+            break;
+    }
+
+    @if (_job.Items.Count > 0)
+    {
+        <h2>Построчный отчёт</h2>
+
+        @if (_errors.Count > 0)
+        {
+            <div class="toolbar">
+                <a class="button button--small" href="/admin/import/@Id">Все строки</a>
+                <a class="button button--small" href="/admin/import/@Id?only=errors">Только ошибки (@_errors.Count)</a>
+            </div>
+        }
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Строка</th>
+                        <th>Слово</th>
+                        <th>Действие</th>
+                        <th>Темы</th>
+                        <th>Видео</th>
+                        <th>Комментарий</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in VisibleItems)
+                    {
+                        <tr>
+                            <td class="muted">@item.LineNumber</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Word) ? "—" : item.Word)</td>
+                            <td>@ActionBadge(item.Action)</td>
+                            <td class="muted">@string.Join(", ", item.Categories)</td>
+                            <td class="muted">@(item.VideoFileName ?? "—")</td>
+                            <td class="muted">@item.Message</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <p style="margin-top:1.5rem"><a class="button" href="/admin/import">← К импорту</a></p>
+}
+
+@code {
+    private ImportJobView? _job;
+    private IReadOnlyList<ImportPlanItem> _errors = [];
+
+    [Parameter]
+    public int Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "only")]
+    public string? Only { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    private IReadOnlyList<ImportPlanItem> VisibleItems =>
+        Only == "errors" ? _errors : _job?.Items ?? [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _job = await ImportService.GetAsync(Id);
+        _errors = _job is null ? [] : [.. _job.Items.Where(item => item.Action == ImportAction.Error)];
+    }
+
+    private static RenderFragment ActionBadge(ImportAction action) => builder =>
+    {
+        var (cssClass, text) = action switch
+        {
+            ImportAction.Create => ("badge badge--ready", "Создать"),
+            ImportAction.Update => ("badge badge--pending", "Обновить"),
+            _ => ("badge badge--failed", "Ошибка"),
+        };
+
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", cssClass);
+        builder.AddContent(2, text);
+        builder.CloseElement();
+    };
+}

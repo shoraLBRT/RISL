@@ -1,0 +1,123 @@
+@page "/admin/import"
+@layout AdminLayout
+@using RISL.Blazor.Security
+@attribute [Authorize(Policy = AdminAuthentication.Policy)]
+@inject IImportService ImportService
+
+<PageTitle>Импорт — панель словаря</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex" />
+</HeadContent>
+
+<h1>Массовый импорт</h1>
+
+@if (Error is not null)
+{
+    <div class="alert alert--error">@(Error == "expired" ? "Форма устарела. Повторите отправку." : Error)</div>
+}
+
+<div class="prose">
+    <p>
+        Загрузите таблицу со словами и, при необходимости, архив с видеозаписями.
+        Ничего не запишется сразу: сначала вы увидите отчёт с номерами строк
+        и сможете отменить операцию.
+    </p>
+
+    <h2>Формат таблицы</h2>
+    <p>
+        CSV в кодировке UTF-8, разделитель «;» или «,» — определяется автоматически.
+        В первой строке должны быть заголовки колонок:
+    </p>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr><th>Колонка</th><th>Обязательна</th><th>Что содержит</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>слово</code></td><td>да</td><td>Само слово. Повтор внутри файла считается ошибкой.</td></tr>
+                <tr><td><code>описание</code></td><td>нет</td><td>Определение слова.</td></tr>
+                <tr><td><code>категории</code></td><td>нет</td><td>Темы через «|». Отсутствующие темы создадутся сами.</td></tr>
+                <tr><td><code>видео</code></td><td>нет</td><td>Имя файла внутри архива, например <code>koshka.mp4</code>.</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p class="muted">
+        Английские заголовки <code>word</code>, <code>description</code>,
+        <code>categories</code>, <code>video</code> тоже понимаются.
+        Слово, уже имеющееся в словаре, будет обновлено, а не продублировано,
+        поэтому повторная загрузка того же файла безопасна.
+    </p>
+</div>
+
+<form class="form" method="post" action="/admin/api/import" enctype="multipart/form-data">
+    <AntiforgeryToken />
+
+    <div class="field">
+        <label class="field__label" for="csv">Таблица CSV</label>
+        <input id="csv" type="file" name="csv" accept=".csv,text/csv" required />
+    </div>
+
+    <div class="field">
+        <label class="field__label" for="archive">Архив с видео (zip)</label>
+        <input id="archive" type="file" name="archive" accept=".zip,application/zip" />
+        <span class="field__hint">
+            Необязательно. Папки внутри архива игнорируются — важны только имена файлов.
+        </span>
+    </div>
+
+    <div>
+        <button class="button button--primary" type="submit">Разобрать файл</button>
+    </div>
+</form>
+
+@if (_jobs.Count > 0)
+{
+    <h2 style="margin-top:2rem">Прошлые загрузки</h2>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Файл</th>
+                    <th>Дата</th>
+                    <th>Состояние</th>
+                    <th>Строк</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var job in _jobs)
+                {
+                    <tr>
+                        <td>@job.FileName</td>
+                        <td class="nowrap muted">@job.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>@StatusText(job.Status)</td>
+                        <td class="nowrap muted">@job.TotalRows (ошибок: @job.Failed)</td>
+                        <td><a class="button button--small" href="/admin/import/@job.Id">Открыть</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<ImportJobView> _jobs = [];
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    protected override async Task OnParametersSetAsync() =>
+        _jobs = await ImportService.ListAsync();
+
+    private static string StatusText(ImportJobStatus status) => status switch
+    {
+        ImportJobStatus.AwaitingConfirmation => "Ждёт подтверждения",
+        ImportJobStatus.Applying => "Применяется",
+        ImportJobStatus.Completed => "Применён",
+        ImportJobStatus.Cancelled => "Отменён",
+        _ => "Сорвался",
+    };
+}

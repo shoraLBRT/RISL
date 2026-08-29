@@ -1,0 +1,178 @@
+@page "/admin/words/new"
+@page "/admin/words/{Id:int}"
+@layout AdminLayout
+@using RISL.Blazor.Security
+@attribute [Authorize(Policy = AdminAuthentication.Policy)]
+@inject IWordAdminService WordService
+@inject ICategoryAdminService CategoryService
+
+<PageTitle>@(IsNew ? "Новое слово" : _word?.Text ?? "Слово") — панель словаря</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex" />
+</HeadContent>
+
+@if (!IsNew && _word is null)
+{
+    <h1>Слово не найдено</h1>
+    <p><a class="button" href="/admin/words">К списку слов</a></p>
+}
+else
+{
+    <h1>@(IsNew ? "Новое слово" : _word!.Text)</h1>
+
+    @if (Saved)
+    {
+        <div class="alert alert--success">Сохранено.</div>
+    }
+
+    @if (Queued)
+    {
+        <div class="alert alert--info">Видео поставлено в очередь на обработку.</div>
+    }
+
+    @if (Error is not null)
+    {
+        <div class="alert alert--error">@(Error == "expired" ? "Форма устарела. Повторите отправку." : Error)</div>
+    }
+
+    @if (_word is { VideoStatus: VideoStatus.Failed })
+    {
+        <div class="alert alert--error">
+            <strong>Видео не обработано.</strong>
+            <div>@_word.VideoError</div>
+            @if (_word.HasIncomingSource)
+            {
+                <form class="inline-form" method="post" action="/admin/api/words/@Id/retry">
+                    <AntiforgeryToken />
+                    <button class="button button--small" type="submit" style="margin-top:0.5rem">Повторить обработку</button>
+                </form>
+            }
+            else
+            {
+                <div class="muted">Исходник не сохранился — загрузите файл заново.</div>
+            }
+        </div>
+    }
+
+    @if (_word is { VideoStatus: VideoStatus.Pending or VideoStatus.Processing })
+    {
+        <div class="alert alert--info">
+            Видео обрабатывается. Обновите страницу через минуту, чтобы увидеть результат.
+        </div>
+    }
+
+    @if (_word?.VideoUrl is { } videoUrl)
+    {
+        <div style="max-width:520px">
+            <div class="word-player">
+                <video controls preload="none" playsinline poster="@_word.PosterUrl">
+                    <source src="@videoUrl" type="video/mp4" />
+                </video>
+            </div>
+            <p class="muted">
+                Длительность: @(_word.VideoDurationSeconds is { } duration ? $"{duration:0} с" : "неизвестна")
+            </p>
+        </div>
+    }
+
+    <form class="form" method="post" action="/admin/api/words" enctype="multipart/form-data">
+        <AntiforgeryToken />
+        @if (!IsNew)
+        {
+            <input type="hidden" name="id" value="@Id" />
+        }
+
+        <div class="field">
+            <label class="field__label" for="text">Слово</label>
+            <input id="text" type="text" name="text" required maxlength="200" value="@_word?.Text" />
+        </div>
+
+        <div class="field">
+            <label class="field__label" for="description">Определение</label>
+            <textarea id="description" name="description">@_word?.Description</textarea>
+            <span class="field__hint">Описание участвует в поиске, но с меньшим весом, чем само слово.</span>
+        </div>
+
+        @if (_categories.Count > 0)
+        {
+            <div class="field">
+                <span class="field__label">Темы</span>
+                <div class="checkbox-grid">
+                    @foreach (var category in _categories)
+                    {
+                        <label>
+                            <input type="checkbox" name="categoryIds" value="@category.Id"
+                                   checked="@(_word?.CategoryIds.Contains(category.Id) ?? false)" />
+                            @category.Name
+                        </label>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="field">
+            <label class="field__label" for="video">Видеозапись жеста</label>
+            <input id="video" type="file" name="video" accept="video/*" />
+            <span class="field__hint">
+                Файл с камеры или телефона подойдёт как есть: он будет перекодирован
+                автоматически. Оставьте поле пустым, чтобы сохранить текущее видео.
+            </span>
+        </div>
+
+        <div class="field field--checkbox">
+            <input id="isPublished" type="checkbox" name="isPublished" value="true"
+                   checked="@(_word?.IsPublished ?? true)" />
+            <label class="field__label" for="isPublished">Опубликовано</label>
+        </div>
+        <span class="field__hint">
+            Гость увидит слово, только если оно опубликовано и видео обработано успешно.
+        </span>
+
+        <div class="toolbar">
+            <button class="button button--primary" type="submit">Сохранить</button>
+            <a class="button" href="/admin/words">К списку</a>
+        </div>
+    </form>
+
+    @if (!IsNew)
+    {
+        <hr style="margin:2rem 0; border:0; border-top:1px solid var(--border)" />
+
+        <form method="post" action="/admin/api/words/@Id/delete"
+              onsubmit="return confirm('Удалить слово вместе с видео? Это действие необратимо.')">
+            <AntiforgeryToken />
+            <button class="button button--danger" type="submit">Удалить слово</button>
+        </form>
+        @* Подтверждение через confirm — единственная защита от случайного клика,
+           которая не требует ни модальных окон, ни интерактивного режима. *@
+    }
+}
+
+@code {
+    private AdminWordDetails? _word;
+    private IReadOnlyList<AdminCategory> _categories = [];
+
+    [Parameter]
+    public int? Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "saved")]
+    public string? SavedValue { get; set; }
+
+    [SupplyParameterFromQuery(Name = "queued")]
+    public string? QueuedValue { get; set; }
+
+    private bool Saved => QueryValues.IsSet(SavedValue);
+
+    private bool Queued => QueryValues.IsSet(QueuedValue);
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    private bool IsNew => Id is null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _categories = await CategoryService.ListAsync();
+        _word = Id is { } id ? await WordService.GetAsync(id) : null;
+    }
+}
