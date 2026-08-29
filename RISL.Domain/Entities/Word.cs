@@ -50,6 +50,12 @@ public class Word
     /// <summary>Имя кадра-заставки вида {guid}.jpg без пути.</summary>
     public string? PosterFileName { get; private set; }
 
+    /// <summary>
+    /// Имя исходника, ожидающего перекодирования. Хранится в базе, чтобы после
+    /// перезапуска сервера незавершённые задания можно было поставить в очередь заново.
+    /// </summary>
+    public string? IncomingVideoFileName { get; private set; }
+
     public double? VideoDurationSeconds { get; private set; }
 
     public VideoStatus VideoStatus { get; private set; } = VideoStatus.None;
@@ -59,6 +65,10 @@ public class Word
 
     public bool IsPublished { get; set; }
 
+    /// <summary>
+    /// Просмотры дописываются фоновым сбросом напрямую в SQL, минуя загрузку сущности:
+    /// открытие страницы слова не должно порождать запись в базу.
+    /// </summary>
     public int ViewCount { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
@@ -94,8 +104,11 @@ public class Word
     }
 
     /// <summary>Исходник загружен и поставлен в очередь на перекодирование.</summary>
-    public void MarkVideoPending()
+    public void MarkVideoPending(string incomingFileName)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(incomingFileName);
+
+        IncomingVideoFileName = incomingFileName;
         VideoStatus = VideoStatus.Pending;
         VideoError = null;
         Touch();
@@ -115,9 +128,14 @@ public class Word
         VideoDurationSeconds = durationSeconds;
         VideoStatus = VideoStatus.Ready;
         VideoError = null;
+        IncomingVideoFileName = null;
         Touch();
     }
 
+    /// <summary>
+    /// Обработка сорвалась. Имя исходника сохраняется: админ сможет повторить попытку,
+    /// не загружая файл заново.
+    /// </summary>
     public void MarkVideoFailed(string error)
     {
         VideoStatus = VideoStatus.Failed;
@@ -136,26 +154,18 @@ public class Word
         VideoDurationSeconds = null;
         VideoStatus = VideoStatus.None;
         VideoError = null;
+        IncomingVideoFileName = null;
         Touch();
     }
 
     public void ReplaceCategories(IEnumerable<Category> categories)
     {
         _categories.Clear();
-        _categories.AddRange(categories.DistinctBy(category => category.Id));
-        Touch();
-    }
 
-    /// <summary>
-    /// Досчитывает просмотры, накопленные в памяти. Вызывается фоновым сбросом,
-    /// а не на каждом открытии страницы, иначе SQLite захлебнётся записями.
-    /// </summary>
-    public void RegisterViews(int count)
-    {
-        if (count > 0)
-        {
-            ViewCount += count;
-        }
+        // Отсеиваем повторы по названию, а не по Id: при импорте темы создаются
+        // на лету и до сохранения у всех них Id равен нулю.
+        _categories.AddRange(categories.DistinctBy(category => category.NormalizedName, StringComparer.Ordinal));
+        Touch();
     }
 
     private void Touch() => UpdatedAt = DateTimeOffset.UtcNow;

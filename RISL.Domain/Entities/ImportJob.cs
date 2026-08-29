@@ -45,9 +45,6 @@ public class ImportJob
     /// <summary>Построчный отчёт разбора в JSON — показывается до и после применения.</summary>
     public string ReportJson { get; private set; } = string.Empty;
 
-    /// <summary>Каталог с распакованными видео, живёт до применения или отмены задания.</summary>
-    public string? StagingDirectory { get; set; }
-
     public void MarkApplying() => Status = ImportJobStatus.Applying;
 
     public void MarkCompleted()
