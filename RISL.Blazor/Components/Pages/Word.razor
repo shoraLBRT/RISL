@@ -1,0 +1,141 @@
+@page "/word/{Id:int}"
+@page "/word/{Id:int}/{Slug}"
+@inject IWordSearchIndex Index
+@inject IViewCounter ViewCounter
+@inject IMediaStorage Storage
+@inject NavigationManager Navigation
+
+@if (_word is null)
+{
+    <PageTitle>Слово не найдено</PageTitle>
+
+    <h1>Слово не найдено</h1>
+    <p class="muted">Возможно, оно ещё не опубликовано или было удалено.</p>
+    <p><a class="button" href="/">Вернуться к словарю</a></p>
+}
+else
+{
+    <PageTitle>@_word.Text — словарь жестового языка</PageTitle>
+    <HeadContent>
+        <meta name="description" content="@MetaDescription" />
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content="@_word.Text" />
+        <meta property="og:description" content="@MetaDescription" />
+        @if (_posterUrl is not null)
+        {
+            <meta property="og:image" content="@AbsoluteUrl(_posterUrl)" />
+        }
+        <link rel="canonical" href="@AbsoluteUrl(CanonicalPath)" />
+    </HeadContent>
+
+    <div class="word-page">
+        <div class="word-page__header">
+            <h1>@_word.Text</h1>
+            <button type="button" class="favorite favorite--inline" data-favorite-id="@_word.Id" aria-pressed="false">☆</button>
+        </div>
+
+        <div class="word-layout">
+            <div>
+                @if (_videoUrl is not null)
+                {
+                    <div class="word-player">
+                        @* preload="none" бережёт мобильный трафик: ролик подгружается только по нажатию. *@
+                        <video controls preload="none" playsinline poster="@_posterUrl">
+                            <source src="@_videoUrl" type="video/mp4" />
+                            Ваш браузер не умеет показывать видео.
+                            <a href="@_videoUrl">Скачайте файл</a>, чтобы посмотреть жест.
+                        </video>
+                    </div>
+
+                    <div class="player-controls">
+                        <span class="player-controls__label">Скорость:</span>
+                        <button type="button" class="speed-button" data-speed="0.5" aria-pressed="false">0,5×</button>
+                        <button type="button" class="speed-button" data-speed="0.75" aria-pressed="false">0,75×</button>
+                        <button type="button" class="speed-button" data-speed="1" aria-pressed="true">1×</button>
+                        <button type="button" class="loop-button" data-loop-toggle aria-pressed="false">Повторять</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">Видеозапись этого жеста ещё готовится.</div>
+                }
+            </div>
+
+            <div>
+                <h2>Определение</h2>
+                <div class="word-definition">@_word.Description</div>
+
+                @if (_categories.Count > 0)
+                {
+                    <h2>Темы</h2>
+                    <div class="chips">
+                        @foreach (var category in _categories)
+                        {
+                            <a class="chip" href="/?category=@Uri.EscapeDataString(category.Slug)">@category.Name</a>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <p style="margin-top:1.5rem"><a class="button" href="/">← Ко всем словам</a></p>
+    </div>
+}
+
+@code {
+    private WordSearchEntry? _word;
+    private IReadOnlyList<CategoryView> _categories = [];
+    private string? _videoUrl;
+    private string? _posterUrl;
+
+    [Parameter]
+    public int Id { get; set; }
+
+    [Parameter]
+    public string? Slug { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        // Индекс содержит только опубликованные слова с готовым видео, поэтому
+        // отдельная проверка видимости здесь не нужна.
+        _word = Index.FindById(Id);
+
+        if (_word is null)
+        {
+            _categories = [];
+            _videoUrl = null;
+            _posterUrl = null;
+            return;
+        }
+
+        _categories = [.. Index.Categories.Where(category => _word.CategoryIds.Contains(category.Id))];
+
+        _videoUrl = _word.VideoFileName is null ? null : Storage.GetPublicUrl(MediaArea.Videos, _word.VideoFileName);
+        _posterUrl = _word.PosterFileName is null ? null : Storage.GetPublicUrl(MediaArea.Posters, _word.PosterFileName);
+
+        // Счётчик копится в памяти и сбрасывается в базу раз в минуту.
+        ViewCounter.Register(_word.Id);
+    }
+
+    private string CanonicalPath =>
+        _word is null || string.IsNullOrEmpty(_word.Slug) ? $"/word/{Id}" : $"/word/{_word.Id}/{_word.Slug}";
+
+    private string MetaDescription
+    {
+        get
+        {
+            if (_word is null)
+            {
+                return string.Empty;
+            }
+
+            var text = string.IsNullOrWhiteSpace(_word.Description)
+                ? $"Как показать слово «{_word.Text}» на жестовом языке."
+                : _word.Description;
+
+            return text.Length <= 160 ? text : text[..157] + "…";
+        }
+    }
+
+    private string AbsoluteUrl(string relativePath) => Navigation.ToAbsoluteUri(relativePath).ToString();
+}

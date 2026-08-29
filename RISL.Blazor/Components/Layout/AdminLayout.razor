@@ -1,0 +1,41 @@
+@inherits LayoutComponentBase
+
+<div class="layout">
+    <header class="site-header">
+        <div class="container site-header__inner">
+            <a class="brand" href="/admin">
+                <span class="brand__mark" aria-hidden="true">⚙</span>
+                <span class="brand__text">Панель словаря</span>
+            </a>
+
+            <AuthorizeView>
+                <Authorized>
+                    <div class="toolbar" style="margin:0">
+                        <span class="muted nowrap">@context.User.Identity?.Name</span>
+                        <a class="button button--small" href="/">На сайт</a>
+                        <form class="inline-form" method="post" action="/admin/api/logout">
+                            <AntiforgeryToken />
+                            <button class="button button--small" type="submit">Выйти</button>
+                        </form>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+    </header>
+
+    <main class="container site-main">
+        <AuthorizeView>
+            <Authorized>
+                <nav class="admin-nav" aria-label="Разделы панели">
+                    <NavLink class="button button--small" href="/admin" Match="NavLinkMatch.All">Сводка</NavLink>
+                    <NavLink class="button button--small" href="/admin/words">Слова</NavLink>
+                    <NavLink class="button button--small" href="/admin/categories">Темы</NavLink>
+                    <NavLink class="button button--small" href="/admin/import">Импорт</NavLink>
+                    <NavLink class="button button--small" href="/admin/feedback">Обратная связь</NavLink>
+                </nav>
+            </Authorized>
+        </AuthorizeView>
+
+        @Body
+    </main>
+</div>

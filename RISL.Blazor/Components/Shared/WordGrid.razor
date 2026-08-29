@@ -1,0 +1,40 @@
+@* Сетка карточек-кнопок: заказчик хотел именно блоки со словами.
+   Каждая карточка — обычная ссылка на страницу слова, поэтому работают
+   и «открыть в новой вкладке», и кнопка «назад», и индексация поисковиками. *@
+
+@if (Items.Count == 0)
+{
+    <div class="empty-state">
+        @EmptyText
+    </div>
+}
+else
+{
+    <ul class="word-grid">
+        @foreach (var word in Items)
+        {
+            <li class="word-card">
+                <a class="word-card__link" href="@WordUrl(word)">
+                    <span class="word-card__text">@word.Text</span>
+                    @if (!string.IsNullOrWhiteSpace(word.Description))
+                    {
+                        <span class="word-card__description">@word.Description</span>
+                    }
+                </a>
+                @* Кнопка вынесена из ссылки: иначе клик по звёздочке уводил бы со страницы. *@
+                <button type="button" class="favorite" data-favorite-id="@word.Id" aria-pressed="false">☆</button>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<WordSearchEntry> Items { get; set; } = [];
+
+    [Parameter]
+    public string EmptyText { get; set; } = "Ничего не нашлось.";
+
+    private static string WordUrl(WordSearchEntry word) =>
+        string.IsNullOrEmpty(word.Slug) ? $"/word/{word.Id}" : $"/word/{word.Id}/{word.Slug}";
+}

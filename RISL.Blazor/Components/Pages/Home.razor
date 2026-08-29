@@ -1,7 +1,157 @@
-﻿@page "/"
+@page "/"
+@inject IWordSearchIndex Index
 
-<PageTitle>Home</PageTitle>
+@* Главная страница целиком обслуживается из памяти: снимок словаря обновляется
+   при записи в админке, поэтому обращений к базе здесь нет вовсе. *@
 
-<h1>Hello, world!</h1>
+<PageTitle>Словарь жестового языка</PageTitle>
+<HeadContent>
+    <meta name="description" content="Словарь жестового языка: @Index.Count слов с определениями и видеозаписями жестов." />
+</HeadContent>
 
-Welcome to your new app.
+<h1>Словарь жестового языка</h1>
+
+<form class="search" method="get" action="/" data-search-form>
+    <label class="visually-hidden" for="search-input">Поиск по словам и определениям</label>
+    <input id="search-input"
+           class="search__input"
+           type="text"
+           name="q"
+           value="@Query"
+           placeholder="Введите слово или его описание"
+           autocomplete="off"
+           data-search-input />
+
+    @* Фильтры переносим скрытыми полями, чтобы поиск не сбрасывал выбранную тему. *@
+    @if (!string.IsNullOrWhiteSpace(Category))
+    {
+        <input type="hidden" name="category" value="@Category" />
+    }
+    @if (!string.IsNullOrWhiteSpace(Letter))
+    {
+        <input type="hidden" name="letter" value="@Letter" />
+    }
+
+    <button class="button button--primary search__submit" type="submit">Найти</button>
+</form>
+
+<div class="filters">
+    @if (Index.Categories.Count > 0)
+    {
+        <div class="chips" role="group" aria-label="Темы">
+            <a class="chip @(string.IsNullOrWhiteSpace(Category) ? "chip--active" : null)" href="@CategoryUrl(null)">Все темы</a>
+            @foreach (var category in Index.Categories)
+            {
+                <a class="chip @(category.Slug == Category ? "chip--active" : null)"
+                   href="@CategoryUrl(category.Slug)">@category.Name <span class="muted">@category.WordCount</span></a>
+            }
+        </div>
+    }
+
+    @if (Index.Letters.Count > 0)
+    {
+        <div class="chips" role="group" aria-label="Алфавитный указатель">
+            <a class="chip chip--letter @(string.IsNullOrWhiteSpace(Letter) ? "chip--active" : null)" href="@LetterUrl(null)">Все</a>
+            @foreach (var letter in Index.Letters)
+            {
+                <a class="chip chip--letter @(letter.ToString() == Letter ? "chip--active" : null)"
+                   href="@LetterUrl(letter.ToString())">@letter</a>
+            }
+        </div>
+    }
+</div>
+
+@* Блок результатов подменяется скриптом при поиске по мере ввода. Всё остальное
+   на странице остаётся на месте, поэтому фокус и каретка в поле не теряются. *@
+<div data-results>
+    <p class="result-count">@ResultText</p>
+
+    <WordGrid Items="_result.Items" EmptyText="@EmptyText" />
+
+    <Pagination Page="_result.Page" TotalPages="_result.TotalPages" BasePath="/" Query="CurrentQuery" />
+</div>
+
+@code {
+    private SearchResult _result = SearchResult.Empty;
+
+    [SupplyParameterFromQuery(Name = "q")]
+    public string? Query { get; set; }
+
+    [SupplyParameterFromQuery(Name = "category")]
+    public string? Category { get; set; }
+
+    [SupplyParameterFromQuery(Name = "letter")]
+    public string? Letter { get; set; }
+
+    // Все параметры строки запроса принимаем строками: штатная привязка к int
+    // роняет страницу на любом мусоре в адресе. См. QueryValues.
+    [SupplyParameterFromQuery(Name = "page")]
+    public string? PageValue { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        _result = Index.Search(new SearchQuery
+        {
+            Text = Query,
+            CategorySlug = Category,
+            Letter = ParseLetter(Letter),
+            Page = QueryValues.ToPage(PageValue),
+        });
+    }
+
+    private IReadOnlyDictionary<string, string?> CurrentQuery => new Dictionary<string, string?>
+    {
+        ["q"] = Query,
+        ["category"] = Category,
+        ["letter"] = Letter,
+    };
+
+    private string ResultText => _result.TotalCount switch
+    {
+        0 => "Ничего не нашлось",
+        _ when string.IsNullOrWhiteSpace(Query) && string.IsNullOrWhiteSpace(Category) && string.IsNullOrWhiteSpace(Letter)
+            => $"Всего слов: {_result.TotalCount}",
+        _ => $"Найдено: {_result.TotalCount}",
+    };
+
+    private string EmptyText => string.IsNullOrWhiteSpace(Query)
+        ? "В этом разделе пока нет слов."
+        : $"По запросу «{Query}» ничего не нашлось. Попробуйте начальную форму слова.";
+
+    private static char? ParseLetter(string? value)
+    {
+        // В адресную строку может прийти что угодно, вплоть до одних знаков препинания.
+        var normalized = TextNormalizer.Normalize(value);
+        return normalized.Length == 0 ? null : normalized[0];
+    }
+
+    /// <summary>Ссылка фильтра по теме: меняем тему, остальные условия сохраняем.</summary>
+    private string CategoryUrl(string? categorySlug) => BuildUrl(categorySlug, Letter);
+
+    /// <summary>Ссылка алфавитного указателя: меняем букву, остальные условия сохраняем.</summary>
+    private string LetterUrl(string? letter) => BuildUrl(Category, letter);
+
+    private string BuildUrl(string? category, string? letter)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(Query))
+        {
+            parts.Add($"q={Uri.EscapeDataString(Query)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            parts.Add($"category={Uri.EscapeDataString(category)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(letter))
+        {
+            parts.Add($"letter={Uri.EscapeDataString(letter)}");
+        }
+
+        // Страница намеренно не переносится: после смены фильтра выдача другая,
+        // и открывать её с пятой страницы бессмысленно.
+        return parts.Count == 0 ? "/" : $"/?{string.Join('&', parts)}";
+    }
+}

@@ -1,0 +1,24 @@
+@* Состояние видео словом, а не цифрой: админ должен понимать его без справочника. *@
+<span class="badge @CssClass">@Text</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public VideoStatus Status { get; set; }
+
+    private string CssClass => Status switch
+    {
+        VideoStatus.Ready => "badge--ready",
+        VideoStatus.Pending or VideoStatus.Processing => "badge--pending",
+        VideoStatus.Failed => "badge--failed",
+        _ => "badge--none",
+    };
+
+    private string Text => Status switch
+    {
+        VideoStatus.Ready => "Готово",
+        VideoStatus.Pending => "В очереди",
+        VideoStatus.Processing => "Обработка",
+        VideoStatus.Failed => "Ошибка",
+        _ => "Нет видео",
+    };
+}

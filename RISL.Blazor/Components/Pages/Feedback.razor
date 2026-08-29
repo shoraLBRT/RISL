@@ -1,0 +1,74 @@
+@page "/feedback"
+
+<PageTitle>Написать нам — словарь жестового языка</PageTitle>
+<HeadContent>
+    <meta name="description" content="Предложите слово для словаря жестового языка или сообщите о неточности в описании." />
+</HeadContent>
+
+<h1>Написать нам</h1>
+
+@if (Sent)
+{
+    <div class="alert alert--success">
+        Спасибо, сообщение получено. Мы читаем всё, что приходит, но ответить можем не на каждое письмо.
+    </div>
+}
+
+@if (Error is not null)
+{
+    <div class="alert alert--error">@ErrorText</div>
+}
+
+<p class="prose">
+    Не нашли нужное слово? Заметили ошибку в описании жеста? Напишите — это помогает словарю расти.
+</p>
+
+<form class="form" method="post" action="/feedback/send">
+    <AntiforgeryToken />
+
+    <div class="field">
+        <label class="field__label" for="feedback-message">Сообщение</label>
+        <textarea id="feedback-message" name="message" required maxlength="4000"
+                  placeholder="Например: не хватает слова «библиотека»"></textarea>
+    </div>
+
+    <div class="field">
+        <label class="field__label" for="feedback-name">Как к вам обращаться</label>
+        <input id="feedback-name" type="text" name="name" maxlength="200" autocomplete="name" />
+        <span class="field__hint">Необязательно</span>
+    </div>
+
+    <div class="field">
+        <label class="field__label" for="feedback-contact">Обратная связь</label>
+        <input id="feedback-contact" type="text" name="contact" maxlength="200"
+               placeholder="Почта или телефон" />
+        <span class="field__hint">Необязательно. Нужна, только если ждёте ответ.</span>
+    </div>
+
+    @* Поле-приманка: человек его не видит, автоматический заполнитель форм — заполняет. *@
+    <div class="honeypot" aria-hidden="true">
+        <label for="feedback-website">Не заполняйте это поле</label>
+        <input id="feedback-website" type="text" name="website" tabindex="-1" autocomplete="off" />
+    </div>
+
+    <div>
+        <button class="button button--primary" type="submit">Отправить</button>
+    </div>
+</form>
+
+@code {
+    [SupplyParameterFromQuery(Name = "sent")]
+    public string? SentValue { get; set; }
+
+    private bool Sent => QueryValues.IsSet(SentValue);
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    private string ErrorText => Error switch
+    {
+        "empty" => "Сообщение не может быть пустым.",
+        "expired" => "Форма устарела, пока была открыта. Отправьте сообщение ещё раз.",
+        _ => "Сообщение не удалось отправить. Попробуйте позже.",
+    };
+}

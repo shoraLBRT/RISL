@@ -1,0 +1,79 @@
+@page "/favorites"
+@inject IWordSearchIndex Index
+
+@* Избранное живёт в браузере, без аккаунтов и серверного хранения. Список
+   идентификаторов приходит обычной формой, а карточки рисует сервер — теми же
+   компонентами, что и на главной. *@
+
+<PageTitle>Избранное — словарь жестового языка</PageTitle>
+<HeadContent>
+    <meta name="robots" content="noindex" />
+</HeadContent>
+
+<h1>Избранное</h1>
+
+@* Форма нужна в разметке всегда: Blazor проверяет, что именованная форма есть
+   на странице и в тот момент, когда он обрабатывает отправленный ею POST. *@
+<form method="post" action="/favorites" @formname="favorites" data-favorites-form hidden="@_submitted">
+    <AntiforgeryToken />
+    <input type="hidden" name="ids" value="" data-favorites-ids />
+</form>
+
+@if (_submitted)
+{
+    <p class="result-count">Сохранённых слов: @_result.TotalCount</p>
+
+    <WordGrid Items="_result.Items"
+              EmptyText="Сохранённые слова больше не найдены — возможно, их удалили из словаря." />
+}
+else
+{
+    @* Пока скрипт не подставил идентификаторы, форма отправляется сама.
+       Если JavaScript выключен, гость видит объяснение, а не пустое ожидание. *@
+    <noscript>
+        <div class="empty-state">
+            Избранное хранится в браузере и требует включённого JavaScript.
+        </div>
+    </noscript>
+
+    <div class="empty-state" data-favorites-pending hidden>
+        Вы пока ничего не сохранили. Нажмите звёздочку на карточке слова, чтобы добавить его сюда.
+    </div>
+}
+
+@code {
+    // Избранное — это десятки слов, а не тысячи, поэтому показываем список целиком:
+    // постраничные ссылки здесь всё равно потеряли бы отправленные формой идентификаторы.
+    private const int MaxFavorites = 500;
+
+    private SearchResult _result = SearchResult.Empty;
+    private bool _submitted;
+
+    [CascadingParameter]
+    public HttpContext? HttpContext { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        var request = HttpContext?.Request;
+
+        if (request is null || !HttpMethods.IsPost(request.Method) || !request.HasFormContentType)
+        {
+            _submitted = false;
+            return;
+        }
+
+        _submitted = true;
+
+        var ids = request.Form["ids"]
+            .ToString()
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(value => int.TryParse(value, out var parsed) ? parsed : (int?)null)
+            .OfType<int>()
+            .Take(MaxFavorites)
+            .ToHashSet();
+
+        _result = ids.Count == 0
+            ? SearchResult.Empty
+            : Index.Search(new SearchQuery { Ids = ids, PageSize = MaxFavorites });
+    }
+}

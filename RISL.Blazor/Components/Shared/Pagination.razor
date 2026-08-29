@@ -1,0 +1,52 @@
+@* Пагинация обычными ссылками, а не бесконечной лентой: так работает кнопка
+   «назад», страницу можно отправить ссылкой, а поисковик обойдёт весь словарь. *@
+
+@if (TotalPages > 1)
+{
+    <nav class="pagination" aria-label="Страницы результатов">
+        @if (Page > 1)
+        {
+            <a class="button button--small" href="@BuildUrl(1)" aria-label="Первая страница">«</a>
+            <a class="button button--small" href="@BuildUrl(Page - 1)" rel="prev">Назад</a>
+        }
+
+        <span class="pagination__current">Страница @Page из @TotalPages</span>
+
+        @if (Page < TotalPages)
+        {
+            <a class="button button--small" href="@BuildUrl(Page + 1)" rel="next">Вперёд</a>
+            <a class="button button--small" href="@BuildUrl(TotalPages)" aria-label="Последняя страница">»</a>
+        }
+    </nav>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public int Page { get; set; }
+
+    [Parameter, EditorRequired]
+    public int TotalPages { get; set; }
+
+    /// <summary>Параметры текущей выборки, которые нужно сохранить при переходе.</summary>
+    [Parameter]
+    public IReadOnlyDictionary<string, string?> Query { get; set; } = new Dictionary<string, string?>();
+
+    /// <summary>Базовый адрес без строки запроса.</summary>
+    [Parameter]
+    public string BasePath { get; set; } = "/";
+
+    private string BuildUrl(int page)
+    {
+        var parts = Query
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+            .Select(pair => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value!)}")
+            .ToList();
+
+        if (page > 1)
+        {
+            parts.Add($"page={page}");
+        }
+
+        return parts.Count == 0 ? BasePath : $"{BasePath}?{string.Join('&', parts)}";
+    }
+}
