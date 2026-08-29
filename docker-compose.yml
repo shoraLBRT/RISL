@@ -1,0 +1,46 @@
+# Приложение и обратный прокси. Прокси включается профилем, поэтому локально
+# можно поднять только сервис app и обращаться к нему напрямую по порту 8080.
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Логин и пароль администратора берутся из .env и в образ не попадают.
+      Admin__Login: ${ADMIN_LOGIN:?укажите ADMIN_LOGIN в .env}
+      Admin__PasswordSalt: ${ADMIN_PASSWORD_SALT:?укажите ADMIN_PASSWORD_SALT в .env}
+      Admin__PasswordHash: ${ADMIN_PASSWORD_HASH:?укажите ADMIN_PASSWORD_HASH в .env}
+      # Исходники позволяют перекодировать словарь заново без пересъёмки,
+      # но занимают на порядок больше места, чем готовые ролики.
+      Media__KeepOriginals: "true"
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      # Один том на базу и медиа. Бэкапить их нужно по-разному, см. docs/operations.md.
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["proxy"]
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?укажите SITE_ADDRESS в .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

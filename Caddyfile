@@ -1,0 +1,12 @@
+# Терминирует HTTPS и проксирует запросы приложению.
+# Сертификат Let's Encrypt выпускается автоматически по имени из SITE_ADDRESS.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# Видео с телефона легко весит сотни мегабайт: предел по умолчанию их отрежет.
+	request_body {
+		max_size 550MB
+	}
+
+	reverse_proxy app:8080
+}

@@ -361,3 +361,14 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# --- RISL ---
+
+# Данные приложения: база SQLite и загруженные медиафайлы.
+# В репозиторий не попадают никогда, бэкапятся отдельно (см. docs/operations.md).
+data/
+
+# Секреты окружения для docker compose
+.env
+
+# Приватные заметки, не для репозитория
+*.local.md
