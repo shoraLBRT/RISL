@@ -75,9 +75,16 @@ public static class TextNormalizer
         {
             var replacement = Transliterate(symbol);
 
-            if (replacement.Length == 0)
+            // null — символ разделяет слова (пробел, знак препинания);
+            // пустая строка — символ исчезает бесследно, как твёрдый знак в «подъезде».
+            if (replacement is null)
             {
                 pendingDash = builder.Length > 0;
+                continue;
+            }
+
+            if (replacement.Length == 0)
+            {
                 continue;
             }
 
@@ -98,7 +105,7 @@ public static class TextNormalizer
         return builder.ToString().Trim('-');
     }
 
-    private static string Transliterate(char symbol) => symbol switch
+    private static string? Transliterate(char symbol) => symbol switch
     {
         'а' => "a",
         'б' => "b",
@@ -136,10 +143,14 @@ public static class TextNormalizer
         _ when symbol is >= '0' and <= '9' => symbol.ToString(),
         // Латиница с диакритикой встречается в заимствованиях: снимаем надстрочные знаки.
         _ when char.GetUnicodeCategory(symbol) is UnicodeCategory.LowercaseLetter => StripDiacritics(symbol),
-        _ => string.Empty,
+        _ => null,
     };
 
-    private static string StripDiacritics(char symbol)
+    /// <summary>
+    /// Снимает надстрочные знаки с латиницы. Если от символа не осталось латинской
+    /// основы (иероглиф, греческая буква), он работает как разделитель.
+    /// </summary>
+    private static string? StripDiacritics(char symbol)
     {
         var decomposed = symbol.ToString().Normalize(NormalizationForm.FormD);
         var builder = new StringBuilder(decomposed.Length);
@@ -152,6 +163,6 @@ public static class TextNormalizer
             }
         }
 
-        return builder.ToString();
+        return builder.Length == 0 ? null : builder.ToString();
     }
 }
