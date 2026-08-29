@@ -8,12 +8,8 @@
     <header class="site-header">
         <div class="container site-header__inner">
             <a class="brand" href="/">
-                <img class="brand__logo logo--on-light"
+                <img class="brand__logo"
                      src="@Assets["img/zakat-logo.png"]"
-                     alt="Благотворительный фонд «Закят»"
-                     width="210" height="111" />
-                <img class="brand__logo logo--on-dark"
-                     src="@Assets["img/zakat-logo-light.svg"]"
                      alt="Благотворительный фонд «Закят»"
                      width="210" height="111" />
                 <span class="brand__divider" aria-hidden="true"></span>
@@ -47,11 +43,16 @@
             <div>
                 <nav class="site-footer__links">
                     <a href="/about">О проекте</a>
-                    <a href="/team">Создатели</a>
+                    <a href="/team">О команде</a>
                     <a href="/feedback">Написать нам</a>
-                    <a href="/admin">Панель</a>
                 </nav>
-                <p class="site-footer__legal">© @DateTime.Now.Year Русский исламский жестовый язык</p>
+                <p class="site-footer__legal">
+                    © @DateTime.Now.Year Русский исламский жестовый язык
+                    <span aria-hidden="true">·</span>
+                    @* Ведём сразу на /admin/login: страницы панели закрыты [Authorize]
+                       и всё равно редиректят туда же. *@
+                    <a class="site-footer__admin" href="/admin/login">Вход для редактора</a>
+                </p>
             </div>
         </div>
     </footer>

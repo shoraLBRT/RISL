@@ -11,7 +11,12 @@
    светлым, а не зелёным: словарь читают подолгу, и вывернутый контраст на
    странице с определениями и видео утомляет глаза быстрее, чем помогает
    бренду. Зелёный держит фирменный стиль там, где его видно, но не мешает:
-   подвал, кнопки, активные фильтры, блок поиска. */
+   подвал, кнопки, активные фильтры.
+
+   Тема только светлая, автоматического переключения по настройке ОС нет.
+   Приложение показывают заказчику и его аудитории на чужих машинах с неизвестными
+   настройками, и предсказуемая подача фирменного стиля здесь важнее, чем
+   подстройка под системную тему. */
 
 :root {
     /* Фирменная шкала */
@@ -45,36 +50,11 @@
     --content-width: 1180px;
 
     --shadow: 0 1px 2px rgb(17 26 28 / 5%), 0 4px 12px rgb(17 26 28 / 6%);
-}
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        /* В тёмной теме фирменный зелёный осветляется: #509269 на тёмном фоне
-           даёт около 2.5:1 и для текста непригоден. */
-        --brand: #7cc294;
-        --brand-deep: #8fd0a5;
-        --brand-deeper: #6bb083;
-        --brand-soft: #1a2b22;
-        --brand-line: #2f4438;
-
-        --bg: #0e1513;
-        --surface: #16201d;
-        --surface-muted: #1e2a26;
-        --text: #e6ecea;
-        --text-muted: #9aa8a4;
-        --border: #2c3a36;
-        --accent: #7cc294;
-        --accent-contrast: #0e1513;
-        --accent-soft: #1a2b22;
-        --danger: #ff9a90;
-        --danger-soft: #3a2020;
-        --success: #7cc294;
-        --success-soft: #1a2b22;
-        --warning: #e0b256;
-        --warning-soft: #322813;
-
-        --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 12px rgb(0 0 0 / 30%);
-    }
+    /* Говорим браузеру, что страница светлая. Без этого в системной тёмной теме
+       он отрисовывает поля ввода, выпадающие списки и полосы прокрутки по-тёмному
+       — поле поиска, главный элемент страницы, осталось бы тёмным на белом. */
+    color-scheme: light;
 }
 
 *,
@@ -342,27 +322,21 @@ img, video {
     font-size: 0.82rem;
 }
 
+/* Вход в панель — служебная ссылка, поэтому стоит в строке копирайта, а не в
+   ряду с разделами сайта, и приглушена до его цвета. Посетителю она не нужна,
+   редактор находит её без подсказки, а с клавиатуры и для скринридера это
+   обычная ссылка. Селектор из двух классов: одиночный .site-footer__admin
+   проиграл бы по специфичности правилу .site-footer a выше. */
+.site-footer .site-footer__admin {
+    color: inherit;
+    text-decoration: underline;
+}
+
 @media (min-width: 768px) {
     .site-footer__inner {
         flex-direction: row;
         align-items: flex-start;
         justify-content: space-between;
-    }
-}
-
-@media (prefers-color-scheme: dark) {
-    .site-footer {
-        background: #12211a;
-        border-top: 1px solid var(--border);
-        color: var(--text-muted);
-    }
-
-    .site-footer a {
-        color: var(--text);
-    }
-
-    .site-footer__legal {
-        color: var(--text-muted);
     }
 }
 
@@ -825,6 +799,21 @@ img, video {
     margin: 0 0 1rem;
 }
 
+.prose ul {
+    margin: 0 0 1rem;
+    padding-left: 1.4rem;
+}
+
+.prose li {
+    margin-bottom: 0.5rem;
+}
+
+/* В сплошном тексте ссылку нужно видеть без наведения: одного цвета мало,
+   особенно тем, кто плохо различает оттенки. */
+.prose a {
+    text-decoration: underline;
+}
+
 /* ---------- Панель администратора ---------- */
 
 .admin-nav {
@@ -945,84 +934,5 @@ tbody tr:last-child td {
     * {
         transition: none !important;
         animation: none !important;
-    }
-}
-
-/* ---------- Заглавный блок главной ---------- */
-
-.hero {
-    background: linear-gradient(155deg, var(--brand-soft), var(--surface) 72%);
-    border: 1px solid var(--brand-line);
-    border-radius: var(--radius);
-    padding: 1.2rem 1.1rem 1.35rem;
-    margin-bottom: 1.4rem;
-}
-
-@media (min-width: 768px) {
-    .hero {
-        padding: 1.75rem 1.6rem 1.85rem;
-    }
-}
-
-.hero h1 {
-    margin-bottom: 0.35rem;
-}
-
-.hero__lead {
-    color: var(--text-muted);
-    max-width: 56ch;
-    margin: 0 0 1.15rem;
-}
-
-.hero .search {
-    margin-bottom: 0;
-}
-
-/* Подпись о принадлежности к экосистеме фонда — на странице «О проекте». */
-.owner-note {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--brand);
-    border-radius: var(--radius-sm);
-    padding: 0.9rem 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.owner-note__logo {
-    display: block;
-    width: auto;
-    height: 42px;
-    flex: 0 0 auto;
-}
-
-.owner-note p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
-/* ---------- Две версии логотипа фонда ---------- */
-
-/* Цветная версия — с тёмной надписью «ЗАКЯТ» — читается только на светлом фоне,
-   белая с песочным — только на тёмном. В тёмной теме поверхности тёмные, поэтому
-   версии меняются местами. Обе лежат в разметке, переключает их медиазапрос:
-   JavaScript ради этого не нужен. display:none убирает лишнюю картинку и из
-   дерева доступности, поэтому альтернативный текст читается ровно один раз.
-   Правила стоят в конце файла: у .brand__logo и .owner-note__logo та же
-   специфичность, и выше по файлу они бы их перебили. */
-.logo--on-dark {
-    display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-    .logo--on-light {
-        display: none;
-    }
-
-    .logo--on-dark {
-        display: block;
     }
 }
