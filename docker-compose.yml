@@ -10,11 +10,18 @@ services:
       Admin__Login: ${ADMIN_LOGIN:?укажите ADMIN_LOGIN в .env}
       Admin__PasswordSalt: ${ADMIN_PASSWORD_SALT:?укажите ADMIN_PASSWORD_SALT в .env}
       Admin__PasswordHash: ${ADMIN_PASSWORD_HASH:?укажите ADMIN_PASSWORD_HASH в .env}
+      # Имена, на которые приложение согласно отвечать. Звёздочка отключает
+      # проверку — годится локально, на сервере сюда идёт домен.
+      AllowedHosts: ${ALLOWED_HOSTS:-*}
       # Исходники позволяют перекодировать словарь заново без пересъёмки,
-      # но занимают на порядок больше места, чем готовые ролики.
-      Media__KeepOriginals: "true"
+      # но занимают на порядок больше места, чем готовые ролики. На сервере
+      # их вывозит в S3 отдельная задача, см. docs/operations.md.
+      Media__KeepOriginals: ${MEDIA_KEEP_ORIGINALS:-true}
     ports:
-      - "${APP_PORT:-8080}:8080"
+      # Только петля. Наружу приложение смотрит через прокси, и это не косметика:
+      # иначе сайт остался бы доступен по голому http на 8080 в обход HTTPS, а любой
+      # клиент мог бы подделать X-Forwarded-For и обойти ограничитель попыток входа.
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
     volumes:
       # Один том на базу и медиа. Бэкапить их нужно по-разному, см. docs/operations.md.
       - ./data:/data
@@ -24,6 +31,12 @@ services:
       timeout: 5s
       start_period: 40s
       retries: 3
+    logging: &logging
+      # Без предела журнал контейнера растёт, пока не кончится диск сервера.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   caddy:
     image: caddy:2-alpine
@@ -40,6 +53,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
+    logging: *logging
 
 volumes:
   caddy-data:

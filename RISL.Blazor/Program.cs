@@ -13,14 +13,14 @@ using RISL.Blazor.Security;
 using RISL.Infrastructure;
 using RISL.Infrastructure.Media;
 
-// Служебный режим: печатает соль и хеш пароля для конфигурации.
-// Иначе завести администратора было бы негде — регистрации в сервисе нет.
+// Служебный режим: печатает готовые строки для .env — соль и хеш пароля.
+// Иначе завести администратора было бы негде: регистрации в сервисе нет.
 if (args is ["hash-password", var plainPassword, ..])
 {
     var (salt, hash) = PasswordHasher.Create(plainPassword);
 
-    Console.WriteLine("Admin__PasswordSalt=" + salt);
-    Console.WriteLine("Admin__PasswordHash=" + hash);
+    Console.WriteLine("ADMIN_PASSWORD_SALT=" + salt);
+    Console.WriteLine("ADMIN_PASSWORD_HASH=" + hash);
     return;
 }
 
