@@ -12,14 +12,14 @@
 
 <h1>Избранное</h1>
 
-@* Форма нужна в разметке всегда: Blazor проверяет, что именованная форма есть
-   на странице и в тот момент, когда он обрабатывает отправленный ею POST. *@
-<form method="post" action="/favorites" @formname="favorites" data-favorites-form hidden="@_submitted">
-    <AntiforgeryToken />
+@* Идентификаторы уходят обычной GET-формой — так же, как поиск на главной.
+   Список оказывается в адресной строке, а не в теле POST, поэтому обновление
+   страницы просто повторяет тот же GET, без предупреждения о повторной отправке. *@
+<form method="get" action="/favorites" data-favorites-form hidden="@Submitted">
     <input type="hidden" name="ids" value="" data-favorites-ids />
 </form>
 
-@if (_submitted)
+@if (Submitted)
 {
     <p class="result-count">Сохранённых слов: @_result.TotalCount</p>
 
@@ -47,25 +47,19 @@ else
     private const int MaxFavorites = 500;
 
     private SearchResult _result = SearchResult.Empty;
-    private bool _submitted;
+    private bool Submitted => IdsValue is not null;
 
-    [CascadingParameter]
-    public HttpContext? HttpContext { get; set; }
+    [SupplyParameterFromQuery(Name = "ids")]
+    public string? IdsValue { get; set; }
 
     protected override void OnParametersSet()
     {
-        var request = HttpContext?.Request;
-
-        if (request is null || !HttpMethods.IsPost(request.Method) || !request.HasFormContentType)
+        if (IdsValue is null)
         {
-            _submitted = false;
             return;
         }
 
-        _submitted = true;
-
-        var ids = request.Form["ids"]
-            .ToString()
+        var ids = IdsValue
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(value => int.TryParse(value, out var parsed) ? parsed : (int?)null)
             .OfType<int>()
