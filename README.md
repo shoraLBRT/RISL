@@ -1,95 +1,101 @@
-# РИЖЯ — русский исламский жестовый язык
+**English** · [Русский](README.ru.md)
 
-Веб-словарь исламских терминов на русском жестовом языке: проект дополняет РЖЯ
-жестами, которых в нём раньше не было. У каждого термина есть определение и
-видеозапись жеста. Гости ищут и смотрят, единственный администратор наполняет и
-правит словарь.
+# RISL — Russian Islamic Sign Language
 
-Приложение сделано для благотворительного фонда «Закят» (zakatfund.ru) и входит
-в его экосистему, но отдельным сайтом фонда не является. Оформление опирается на
-фирменную палитру фонда, логотип используется как знак принадлежности.
+A web dictionary of Islamic terms in Russian Sign Language: the project adds
+signs that RSL did not have before. Every term comes with a definition and a
+video recording of the sign. Visitors search and watch; a single administrator
+fills in and edits the dictionary.
 
-## Возможности
+The application is made for the Zakat charity foundation (zakatfund.ru) and is
+part of its ecosystem, but it is not the foundation's own website. The design
+follows the foundation's brand palette, and the logo is used as a mark of
+affiliation.
 
-- Поиск по словам и определениям с ранжированием: точное совпадение → начало
-  слова → вхождение в слово → вхождение в определение.
-- Фильтр по темам, алфавитный указатель, постраничная выдача.
-- Страница слова с замедлением видео до половинной скорости и повтором по кругу;
-  выбранная скорость запоминается.
-- Избранное — в браузере посетителя, без регистрации.
-- Форма обратной связи с ограничением частоты отправки.
-- Админка: правка слов и тем, массовый импорт словаря из CSV + zip с видео,
-  очередь перекодирования и просмотр сообщений от посетителей.
+## Features
 
-Публичная часть отдаётся обычным серверным HTML: интерактивный режим Blazor не
-подключён, ни один гостевой запрос не открывает WebSocket. Сайт индексируется
-поисковиками и работает при выключенном JavaScript — теряются только поиск по
-мере ввода, избранное и кнопки скорости. Почему сделано именно так — в
-[docs/architecture.md](docs/architecture.md).
+- Search across words and definitions with ranking: exact match → start of the
+  word → occurrence inside the word → occurrence in the definition.
+- Filtering by topic, alphabetical index, paged results.
+- Word page with video slowed down to half speed and looped playback; the
+  chosen speed is remembered.
+- Favourites — stored in the visitor's browser, no sign-up.
+- Feedback form with a submission rate limit.
+- Admin area: editing words and topics, bulk dictionary import from CSV + a zip
+  of videos, the transcoding queue, and messages from visitors.
 
-## Требования
+The public part is served as ordinary server-rendered HTML: the Blazor
+interactive mode is not enabled, and no guest request opens a WebSocket. The
+site is indexed by search engines and works with JavaScript turned off — only
+search-as-you-type, favourites, and the speed buttons are lost. The reasoning
+behind this is in [docs/architecture.md](docs/architecture.md) (in Russian).
+
+## Requirements
 
 - .NET SDK 10.0
-- ffmpeg и ffprobe в `PATH` — без них приложение запустится, но загруженные
-  записи перейдут в состояние «Ошибка»
+- ffmpeg and ffprobe on `PATH` — without them the application still starts, but
+  uploaded recordings end up in the "Error" state
 
-## Быстрый старт
+## Quick start
 
 ```bash
 dotnet run --project RISL.Blazor
 ```
 
-В окружении Development база наполняется примерами, логин и пароль — `admin` /
-`admin123` (см. `RISL.Blazor/appsettings.Development.json`). Панель находится по
-адресу `/admin`.
+In the Development environment the database is seeded with samples; the login
+and password are `admin` / `admin123` (see
+`RISL.Blazor/appsettings.Development.json`). The admin panel lives at `/admin`.
 
 ```bash
 dotnet test
 ```
 
-## Запуск в Docker
+## Running in Docker
 
-Образ уже содержит ffmpeg; база и медиафайлы лежат на томе `./data` и переживают
-пересборку.
+The image already contains ffmpeg; the database and media files live on the
+`./data` volume and survive a rebuild.
 
 ```bash
 cp .env.example .env
 ```
 
-Заполните `.env` — соль и хеш пароля печатает служебная команда:
+Fill in `.env` — the password salt and hash are printed by a helper command:
 
 ```bash
-dotnet run --project RISL.Blazor -- hash-password ваш-пароль
+dotnet run --project RISL.Blazor -- hash-password your-password
 ```
 
 ```bash
 docker compose up --build
 ```
 
-Приложение будет доступно на `http://localhost:8080`. Запуск вместе с
-HTTPS-прокси, настройка окружения и бэкапы описаны в
-[docs/operations.md](docs/operations.md).
+The application will be available at `http://localhost:8080`. Running it
+together with an HTTPS proxy, configuring the environment, and backups are
+described in [docs/operations.md](docs/operations.md) (in Russian).
 
-## Структура решения
+## Solution layout
 
 ```
-RISL.Domain          сущности и нормализация текста, без внешних зависимостей
-RISL.Application     порты, поисковый индекс, разбор CSV, хеширование пароля
-RISL.Infrastructure  EF Core/SQLite, файловое хранилище, ffmpeg, фоновые службы
-RISL.Blazor          страницы, эндпоинты форм, статика
-RISL.Tests           xUnit: поиск, импорт, хранилище, админ-сервисы
+RISL.Domain          entities and text normalization, no external dependencies
+RISL.Application     ports, search index, CSV parsing, password hashing
+RISL.Infrastructure  EF Core/SQLite, file storage, ffmpeg, background services
+RISL.Blazor          pages, form endpoints, static files
+RISL.Tests           xUnit: search, import, storage, admin services
 ```
 
-Зависимости идут строго в одну сторону: `Blazor → Infrastructure → Application → Domain`.
+Dependencies point strictly in one direction:
+`Blazor → Infrastructure → Application → Domain`.
 
-## Документация
+## Documentation
 
-- [docs/architecture.md](docs/architecture.md) — устройство приложения, принятые
-  решения и их причины, обработка видео, безопасность.
-- [docs/operations.md](docs/operations.md) — развёртывание, конфигурация,
-  наполнение словаря, резервное копирование.
+The documents below are written in Russian.
 
-## Лицензия
+- [docs/architecture.md](docs/architecture.md) — how the application is built,
+  the decisions taken and their reasons, video processing, security.
+- [docs/operations.md](docs/operations.md) — deployment, configuration, filling
+  the dictionary, backups.
 
-Проект целиком — код и содержимое словаря (видеозаписи жестов, определения
-слов, названия тем) — распространяется по лицензии [MIT](LICENSE).
+## License
+
+The whole project — the code and the dictionary content (sign videos, word
+definitions, topic names) — is distributed under the [MIT](LICENSE) license.
